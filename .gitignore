@@ -1,0 +1,9 @@
+target/
+test-programs/
+*.so
+.DS_Store
+._*
+starter.md
+PROJECT_RESEARCH.md
+docs/superpowers/
+docs/outreach/
