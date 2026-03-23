@@ -52,8 +52,10 @@ A CU investigation that currently takes **2–4 hours** of deploy-test-guess cyc
 ## Install
 
 ```bash
-cargo install --path .
+cargo install sbpf-analyzer
 ```
+
+[![crates.io](https://img.shields.io/crates/v/sbpf-analyzer.svg)](https://crates.io/crates/sbpf-analyzer)
 
 Or build from source:
 
@@ -204,7 +206,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Install sbpf-analyzer
-        run: cargo install --path tools/sbpf-analyzer  # or from git
+        run: cargo install sbpf-analyzer
 
       - name: Build program
         run: anchor build  # or cargo build-sbf
