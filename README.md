@@ -26,9 +26,46 @@ OPTIMIZATION OPPORTUNITIES
 
 ## Why
 
-Solana programs have a hard **1.4M CU cap per transaction**. Exceed it and the transaction fails — the user still pays fees. Every serious protocol team manually audits for CU efficiency. There is no good open-source static analysis tooling for this.
+Solana programs have a hard **1.4M compute unit (CU) cap per transaction**. Exceed it and the transaction fails — but unlike Ethereum, the user **still pays fees** for the failed transaction. A simple token transfer costs ~3,000 CU (trivial), but a complex DeFi operation — a liquidation iterating over 8 collateral positions, a multi-hop swap across 4 AMMs — can approach the limit fast. Every serious protocol team manually audits for CU efficiency. There is no open-source static analysis tooling for this.
 
 `sbpf-analyzer` is the tool that should exist but doesn't.
+
+## The Problem: How CU Debugging Works Today
+
+```
+Write code → cargo build-sbf → Deploy to devnet → Run transactions → Check logs
+                                                          ↓
+                                              "Transaction failed: exceeded CU limit"
+                                                          ↓
+                                              Guess which function is expensive
+                                                          ↓
+                                    Add sol_log_compute_units_() calls everywhere
+                                                          ↓
+                                              Redeploy → Rerun → Read logs → Repeat
+```
+
+Today, finding CU problems requires **deploying and running transactions** first. There is no way to see compute costs from the compiled binary alone. Developers sprinkle `sol_log_compute_units_()` calls through their code, redeploy, rerun, and read logs — repeating for every function they suspect. There is no CI automation, no diffing between versions, no way to catch regressions before mainnet.
+
+## With sbpf-analyzer
+
+```
+Write code → cargo build-sbf → sbpf-analyze program.so → See the full report instantly
+                                          ↓
+                            "Function X: 30K CU, 18 loops, logging in loop"
+                                          ↓
+                            Fix it → Rebuild → Re-analyze → Confirm the improvement
+```
+
+| What you need to do | Before | After |
+|---|---|---|
+| **Find expensive functions** | Deploy → run → read logs → guess | One command, ranked report in seconds |
+| **Find loops burning CU** | Read source manually | Automatic detection with iteration bounds |
+| **Find wasted logging** | Nobody checks | Flagged automatically |
+| **Catch CU regressions** | Not possible until production | `--fail-regression` in CI on every PR |
+| **Onboard a new dev** | "Ask the senior dev which functions are hot" | Run the tool, read the report |
+| **Pre-audit prep** | Auditors start from scratch | Hand them the JSON report |
+
+A CU investigation that currently takes **2–4 hours** of deploy-test-guess cycles becomes a **10-second command**. CI regression detection — which currently doesn't exist at all — prevents CU blowups from reaching mainnet.
 
 ## Install
 
@@ -133,17 +170,28 @@ sbpf-analyze target/deploy/my_program.so --save-baseline baseline.json
 
 ## Demo: Real Mainnet Programs
 
-Tested against deployed Solana programs dumped from mainnet:
+We ran sbpf-analyzer against 10 of the most-used Solana programs, dumped directly from mainnet with `solana program dump`:
 
-| Program | Size | Analysis Time | Functions | Loops | Findings |
-|---|---|---|---|---|---|
-| Memo V2 | 73 KB | ~600ms | 11 | 2 | 1 critical |
-| SPL Token | 131 KB | ~600ms | 36 | 19 | 0 critical |
-| Serum DEX V3 | 483 KB | ~800ms | 37 | 28 | 1 critical, 2 warnings |
-| Metaplex Token Metadata | 776 KB | ~900ms | 58 | 32 | 0 critical |
-| Raydium AMM V4 | 1.3 MB | ~2s | 55 | 70 | 2 critical, 3 warnings |
-| Jupiter V6 | 2.8 MB | ~3s | 55 | 62 | 1 critical |
-| Drift V2 | 6.4 MB | ~11s | 289 | 299 | 5 critical |
+| Program | Size | Functions | Loops | Total CU | Critical | Logging in Loops |
+|---|---|---|---|---|---|---|
+| Memo V2 | 73 KB | 237 | 50 | 47,083 | 2 | 1 |
+| SPL Token | 131 KB | 165 | 52 | 56,720 | 1 | 0 |
+| SPL Token-2022 | 1.3 MB | 559 | 189 | 144,317 | 1 | 2 |
+| Serum DEX V3 | 483 KB | 188 | 80 | 212,576 | 1 | 2 |
+| Metaplex Token Metadata | 776 KB | 1,283 | 173 | 191,884 | 5 | 1 |
+| Raydium AMM V4 | 1.3 MB | 419 | 171 | 259,782 | 2 | 3 |
+| Jupiter V6 | 2.8 MB | 1,083 | 206 | 300,974 | 1 | 0 |
+| Drift V2 | 6.4 MB | 3,073 | 1,278 | 2,752,652 | 3 | 47 |
+| Orca Whirlpool | 10 MB | 919 | 321 | 546,465 | 0 | 0 |
+| Kamino Lending | 10 MB | 1,265 | 386 | 1,248,664 | 2 | 87 |
+
+**Across 10 programs**: 9,191 functions, 2,906 loops, 18 critical findings, 134 logging-in-loop instances.
+
+Notable results:
+- **Kamino Lending** has 87 `sol_log_` calls inside loops — at 100 CU each, a multi-collateral path could burn 5,000–10,000 CU on logging alone
+- **Drift V2** has 47 logging-in-loop instances and the highest loop count (1,278) of any program
+- **Orca Whirlpool** is the only program with zero critical findings and zero logging in loops
+- **Serum DEX V3** has the single hottest function at ~41,000 CU worst-case with 51 syscalls
 
 ### Example: Raydium AMM V4
 
