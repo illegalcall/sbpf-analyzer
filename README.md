@@ -2,27 +2,9 @@
 
 Static compute unit analyzer for Solana sBPF programs. Feed it a compiled `.so` file, get back a ranked report of which functions burn the most CUs, where the loops are, and what to optimize — before you deploy.
 
-```
-$ sbpf-analyze program.so
-
-═══════════════════════════════════════════════════════
-  SBPF STATIC ANALYSIS REPORT
-  Program: entrypoint
-  Total estimated CU: 191,884 (reachable: 56)
-═══════════════════════════════════════════════════════
-
-FUNCTION: process_instruction (worst-case: 6,721 CU, upper-bound: 15,034 CU) (0% static)
-  Instructions: 2400 | Entry: 0x7979
-  Syscalls: sol_log_ (100 CU, ~118 CU with data), abort (100 CU) ...
-  ⚠ Loop at 0x7c8e–0x82bd: 188 insns × 523 CU/iter × ~10 iters (assumed)
-     Syscalls in loop: abort (100 CU), sol_log_ (100 CU)
-
-OPTIMIZATION OPPORTUNITIES
-───────────────────────────────────────────────────────
-  🔴 [CRITICAL] Unbounded loop — no exit edge detected (est. 200,000 CU)
-  🟡 [WARNING]  sol_log_ inside a loop (100 CU × iterations)
-  🟡 [WARNING]  Indirect call — target unresolvable statically
-```
+<p align="center">
+  <img src="docs/screenshot.png" alt="sbpf-analyzer output" width="700">
+</p>
 
 ## Why
 

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px;
+    font-family: -apple-system, sans-serif;
+  }
+  .terminal {
+    background: #0d1117;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+    max-width: 920px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .titlebar {
+    background: #161b22;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #21262d;
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ff5f56; }
+  .dot-yellow { background: #ffbd2e; }
+  .dot-green { background: #27c93f; }
+  .title {
+    color: #8b949e;
+    font-size: 13px;
+    margin-left: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  .content {
+    padding: 20px 24px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #c9d1d9;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .prompt { color: #7ee787; }
+  .cmd { color: #c9d1d9; }
+  .cyan { color: #58a6ff; font-weight: bold; }
+  .green { color: #7ee787; font-weight: bold; }
+  .yellow { color: #d29922; font-weight: bold; }
+  .bold { font-weight: bold; }
+  .red-bold { color: #f85149; font-weight: bold; }
+  .yellow-warn { color: #d29922; }
+  .dim { color: #8b949e; font-style: italic; }
+  .separator-heavy { color: #58a6ff; font-weight: bold; }
+  .separator-light { color: #58a6ff; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="terminal">
+  <div class="titlebar">
+    <div class="dot dot-red"></div>
+    <div class="dot dot-yellow"></div>
+    <div class="dot dot-green"></div>
+    <span class="title">sbpf-analyze — Raydium AMM V4 (mainnet)</span>
+  </div>
+  <div class="content"><span class="prompt">$</span> <span class="cmd">sbpf-analyze raydium_amm_v4.so</span>
+
+<span class="separator-heavy">═══════════════════════════════════════════════════════════════════</span>
+<span class="cyan">  SBPF STATIC ANALYSIS REPORT</span>
+  Program: <span class="green">entrypoint</span>
+  Total estimated CU: <span class="yellow">259,782</span> (reachable: <span class="yellow">751</span>)
+<span class="separator-heavy">═══════════════════════════════════════════════════════════════════</span>
+
+<span class="bold">FUNCTION:</span> <span class="green">&lt;0x9680&gt;</span> (worst-case: <span class="yellow">16,693</span> CU, upper-bound: <span class="yellow">28,563</span> CU) (0% static)
+  Instructions: 3236 | Entry: 0x9680
+  Syscalls: abort (100 CU)
+  <span class="yellow-warn">⚠</span> Loop at 0x9708–0x9738: 47 insns × <span class="yellow">47</span> CU/iter × ~10 iters (assumed)
+  <span class="yellow-warn">⚠</span> Loop at 0x9800–0x98c6: 188 insns × <span class="yellow">188</span> CU/iter × ~10 iters (assumed)
+  <span class="yellow-warn">⚠</span> Loop at 0x9900–0xa29f: 2433 insns × <span class="yellow">2,533</span> CU/iter × ~10 iters (assumed)
+     Syscalls in loop: abort (100 CU)
+
+<span class="bold">FUNCTION:</span> <span class="green">&lt;0x4d1e&gt;</span> (worst-case: <span class="yellow">14,378</span> CU, upper-bound: <span class="yellow">15,096</span> CU) (13% static)
+  Instructions: 1648 | Entry: 0x4d1e
+  Syscalls: sol_log_ (100 CU), sol_log_ (100 CU, ~356 CU with data)
+  <span class="yellow-warn">⚠</span> Loop at 0x5100–0x53d2: 572 insns × <span class="yellow">1,392</span> CU/iter × ~10 iters (assumed)
+     Syscalls in loop: sol_log_ (100 CU), sol_log_ (100 CU), sol_log_ (100 CU)
+
+  <span style="color:#484f58">... 53 more functions ...</span>
+
+<span class="separator-light">───────────────────────────────────────────────────────────────────</span>
+<span class="cyan">OPTIMIZATION OPPORTUNITIES</span>
+<span class="separator-light">───────────────────────────────────────────────────────────────────</span>
+  🔴 <span class="red-bold">[CRITICAL]</span> at 0x2633: Loop (SCC 2018) has no CFG edge exiting the loop
+     <span class="dim">→ Add a bounded loop counter or exit condition</span> (est. impact: <span class="yellow">200,000</span> CU)
+  🔴 <span class="red-bold">[CRITICAL]</span> at 0x1120e: Loop (SCC 11920) has no CFG edge exiting the loop
+     <span class="dim">→ Add a bounded loop counter or exit condition</span> (est. impact: <span class="yellow">200,000</span> CU)
+  🟡 <span class="yellow-warn">[WARNING]</span> at 0x5136: Logging syscall `sol_log_` inside a loop (100 CU each)
+     <span class="dim">→ Remove logging from hot loops or gate behind a debug flag</span> (est. impact: <span class="yellow">1,000</span> CU)
+  🟡 <span class="yellow-warn">[WARNING]</span> at 0x5178: Logging syscall `sol_log_` inside a loop (100 CU each)
+     <span class="dim">→ Remove logging from hot loops or gate behind a debug flag</span> (est. impact: <span class="yellow">1,000</span> CU)
+  🟡 <span class="yellow-warn">[WARNING]</span> at 0x51ec: Logging syscall `sol_log_` inside a loop (100 CU each)
+     <span class="dim">→ Remove logging from hot loops or gate behind a debug flag</span> (est. impact: <span class="yellow">1,000</span> CU)
+</div>
+</div>
+</body>
+</html>

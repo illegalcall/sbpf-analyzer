@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 description = "Static compute unit analyzer for Solana sBPF bytecode"
 license = "Apache-2.0"
+repository = "https://github.com/illegalcall/sbpf-analyzer"
+homepage = "https://github.com/illegalcall/sbpf-analyzer"
+keywords = ["solana", "sbpf", "compute-units", "static-analysis", "bytecode"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
 
 [[bin]]
 name = "sbpf-analyze"
