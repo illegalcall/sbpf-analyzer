@@ -192,6 +192,21 @@ OPTIMIZATION OPPORTUNITIES
      → Remove logging from hot loops or gate behind a debug flag
 ```
 
+## Framework Comparison: Anchor vs Pinocchio vs Quasar
+
+We compiled the same vault program (deposit/withdraw SOL) with all three frameworks and analyzed the bytecode:
+
+| Metric | Anchor | Pinocchio | Quasar |
+|---|---|---|---|
+| **Binary size** | 171 KB | 8.3 KB | 6.3 KB |
+| **Functions** | 234 | 6 | 8 |
+| **Total instructions** | 16,369 | 746 | 474 |
+| **Total estimated CU** | 39,393 | 5,917 | 6,939 |
+
+Anchor generates 234 functions for a 2-instruction vault. Pinocchio: 6. Quasar: 8.
+
+Full analysis with methodology and reproduce steps: **[docs/framework-comparison.md](docs/framework-comparison.md)**
+
 ## GitHub Actions
 
 ```yaml
